@@ -26,4 +26,4 @@ Arduino library used:
 The following information is very helpful to understand how OBD2 uses the CAN bus for communication:
    https://www.csselectronics.com/pages/obd2-explained-simple-intro
 
-![Hardware](images/hardware.jpg)
+![Hardware](https://github.com/ClaudeMarais/Simple_OBD2_for_AlfaRomeoGiulia/blob/main/Images/Hardware.jpg?raw=true)
