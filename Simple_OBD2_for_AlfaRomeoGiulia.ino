@@ -42,7 +42,7 @@
 #include <ESP32-TWAI-CAN.hpp>   // TWAI = Two-Wire Automotive Interface
 #include "OBD2Calculations.h"   // Callback functions for PIDs
 
-// CAN IDs of car modules
+// CAN IDs of car modules. These are extended OBD2 CAN IDs and for car modules they are all in the format 0x18DA__F1, and when received, 0x18DAF__
 enum CarModule
 {
   All = 0x18DB33F1,   // Used to send a message to all car modules
@@ -62,12 +62,12 @@ enum OBD2Service
 // Struct to easily define PIDs
 struct PID
 {
-    char        Name[256];
-    CarModule   Module;
-    OBD2Service Service;
-    uint16_t    PID;
-    uint32_t (*CalculateValue)(const uint8_t* pData);
-    void (*PrintInformation)(void);
+  char        Name[256];
+  CarModule   Module;
+  OBD2Service Service;
+  uint16_t    PID;
+  uint32_t (*CalculateValue)(const uint8_t* pData);
+  void (*PrintInformation)(void);
 };
 
 // Define our OBD2 PIDs (Thanks to the Alfisti community for reverse enginering some of these PIDs)
@@ -97,19 +97,19 @@ void SendOBD2Request(CarModule carModule, OBD2Service service, uint16_t pid)
 {
   const uint8_t   unused = 0xAA;
 
-	CanFrame canFrame = { 0 };
+  CanFrame canFrame = { 0 };
 
-	canFrame.identifier = carModule;
-	canFrame.extd = (carModule > 0xFF);       // Standard CAN IDs are in the range 0x7E8-0x7EF
-	canFrame.data_length_code = 8;            // OBD2 always has 8 bytes in a CAN frame
-	canFrame.data[0] = (pid > 0xFF) ? 3 : 2;  // If pid is 1 byte, then payload is 2 (1 byte for DLC and 1 byte for pid), otherwise payload is 3 (1 byte for DLC and 2 bytes for pid)
-	canFrame.data[1] = service;
-	canFrame.data[2] = (pid > 0xFF) ? FIRST_BYTE(pid) : pid;      // If the pid is 2 bytes, use the most signigicant byte as the 1st byte in the data
-	canFrame.data[3] = (pid > 0xFF) ? SECOND_BYTE(pid) : unused;  // If the pid is 2 bytes, use the least signigicant byte as the 2nd byte in the data
-	canFrame.data[4] = unused;
-	canFrame.data[5] = unused;
-	canFrame.data[6] = unused;
-	canFrame.data[7] = unused;
+  canFrame.identifier = carModule;
+  canFrame.extd = (carModule > 0xFF);       // Standard CAN IDs are in the range 0x7E8-0x7EF
+  canFrame.data_length_code = 8;            // OBD2 always has 8 bytes in a CAN frame
+  canFrame.data[0] = (pid > 0xFF) ? 3 : 2;  // If pid is 1 byte, then payload is 2 (1 byte for DLC and 1 byte for pid), otherwise payload is 3 (1 byte for DLC and 2 bytes for pid)
+  canFrame.data[1] = service;
+  canFrame.data[2] = (pid > 0xFF) ? FIRST_BYTE(pid) : pid;      // If the pid is 2 bytes, use the most signigicant byte as the 1st byte in the data
+  canFrame.data[3] = (pid > 0xFF) ? SECOND_BYTE(pid) : unused;  // If the pid is 2 bytes, use the least signigicant byte as the 2nd byte in the data
+  canFrame.data[4] = unused;
+  canFrame.data[5] = unused;
+  canFrame.data[6] = unused;
+  canFrame.data[7] = unused;
 
   ESP32Can.writeFrame(canFrame);
 
@@ -155,9 +155,9 @@ void setup()
   // Random frames with non-valid OBD2 data can be received on the CAN bus. We're not interested in those, therefore we want to filter them out.
   // Valid extended CAN IDs are in the range [0x18DAF100 .. 0x18DAF1FF], so we setup a filter to only receive CAN IDs in the range [0x18000000 .. 0x18FFFFFF]
   twai_filter_config_t canFilter;
-	canFilter.acceptance_code = 0x18000000U << 3;
-	canFilter.acceptance_mask = 0x00FFFFFFU << 3;
-	canFilter.single_filter = true;
+  canFilter.acceptance_code = 0x18000000U << 3;
+  canFilter.acceptance_mask = 0x00FFFFFFU << 3;
+  canFilter.single_filter = true;
 
   // Initialize TWAI (two-wire automotive interface) for CAN messaging
   // NOTE: After some failed attempts with the ESP32-C3, it seems that pins TX/RX and D0/D1 doesn't send/receive data to/from
@@ -201,6 +201,7 @@ void loop()
         {
           PIDs[i].CalculateValue(ReceivedOBD2Frame.data);
           PIDs[i].PrintInformation();
+          break;
         }
       }
     }
