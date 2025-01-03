@@ -27,3 +27,5 @@ The following information is very helpful to understand how OBD2 uses the CAN bu
    https://www.csselectronics.com/pages/obd2-explained-simple-intro
 
 ![Hardware](https://github.com/ClaudeMarais/Simple_OBD2_for_AlfaRomeoGiulia/blob/main/Images/Hardware.jpg?raw=true)
+
+![Setup](https://github.com/ClaudeMarais/Simple_OBD2_for_AlfaRomeoGiulia/blob/main/Images/Setup.jpg?raw=true)
