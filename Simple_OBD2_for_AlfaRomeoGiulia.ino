@@ -9,7 +9,7 @@
 //
 // Some tips:
 //
-// 1) Connect your car to a battery charger while experimenting. It's highly likely that you'll spend several hours in your car while the battery is being drained.
+// 1) Consider connecting your car to a battery charger while experimenting. It's highly likely that you'll spend several hours in your car while the battery is being drained.
 // 2) Diagrams of OBD2 pins are normally shown for the female connector in your car. Don't forget that those pins are in swapped/mirrored positions on the male connector.
 // 3) The OBD2 connector has an "always on" 12V pin. Make sure the wire connecting to that pin on your male connector isn't exposed so that it cannot touch other wires!
 // 4) I tried multiple pins on the ESP32-C3 to connect to the SN65HVD230, but only D4/D5 worked for me. Coincidentally these are also the SDA/SCL pins.
@@ -129,34 +129,52 @@ void SendOBD2Request(uint32_t carModule, uint32_t service, uint16_t pid)
 
   ESP32Can.writeFrame(canFrame);
 
+  // Print frame data when debugging
+  //PrintOBD2Frame(canFrame, false);
+
   delay(50);  // Add a short delay between sending frames
 }
 
-// Find the PID in the data of an OBD2 frame. Most of our PIDs will be two bytes long
-uint16_t GetPID(const CanFrame& frame, uint8_t pidLengthInBytes = 2)
+// Find the PID in the data of an OBD2 frame. OBD2 uses a 2-byte PID for Extended CAN frames, but 1 byte for Standard CAN frames
+uint16_t GetPID(const CanFrame& frame)
 {
+  uint8_t pidLengthInBytes = frame.extd ? 2 : 1;
   return (pidLengthInBytes == 1) ? frame.data[2] : ((frame.data[2] << 8) | frame.data[3]);
 }
 
-// Determine if a CAN ID is from a valid OBD2 car module. Valid CAN IDs for OBD2 are in the range [0x18DAF100 .. 0x18DAF1FF]
-// To be safe, we'll check the range [0x18000000 .. 0x18FFFFFF]
+// Find the Service in the data of an OBD2 frame
+uint16_t GetService(const CanFrame& frame, const bool receivedFrame)
+{
+  uint8_t service = frame.data[1];
+
+  // CAN will always add 0x40 to the Service in received frames, e.g. if requesting service 0x22, 0x62 will show up in the received frame, not 0x22
+  return receivedFrame ? (service - 0x40) : service;
+}
+
+// Determine if a CAN ID is from a valid OBD2 car module
 bool IsValidCarModule(uint32_t canID)
 {
-  return (canID >= 0x18000000) && (canID <= 0x18FFFFFF);
+  bool isValidStandard = (canID >= 0x700) && (canID <= 0x7FF);            // Valid Standard CAN IDs for OBD2 are in the range [0x7E8-0x7EF]
+  bool isValidExtended = (canID >= 0x18000000) && (canID <= 0x18FFFFFF);  // Valid Extended CAN IDs for OBD2 are in the range [0x18DAF100 .. 0x18DAF1FF]
+  return (isValidStandard || isValidExtended);
 }
 
 // It's useful for debugging to print the raw data of an OBD2 frame
-void PrintOBD2Frame(CanFrame& frame)
+void PrintOBD2Frame(CanFrame& frame, const bool receivedFrame)
 {
-  // Print module and PID
   auto pid = GetPID(frame);
-  Serial.printf("%#08x %#04x : ", frame.identifier, pid);
+  auto service = GetService(frame, receivedFrame);
   
-  // Print data
-  for (int i = 0; i < frame.data_length_code; i++)
+  Serial.print(receivedFrame ? "Received:    " : "Sent    :    ");
+  Serial.printf("Raw Data = %#04x ", frame.identifier);
+  
+  for (int i = 0; i < 8; i++)   // CAN frames are always 8 bytes
   {
-    Serial.printf("%#02x ", frame.data[i]);
+    Serial.printf("%#04x ", frame.data[i]);
   }
+
+  // Print extracted info
+  Serial.printf("   Car Module = %#04x    Service = %#04x    PID = %#04x    Data Length = %d", frame.identifier, service, pid, frame.data_length_code);
 
   Serial.println();      
 }
@@ -212,6 +230,9 @@ void loop()
 
     if (IsValidCarModule(canID))
     {
+      // Print frame data when debugging
+      //PrintOBD2Frame(ReceivedOBD2Frame, true);
+
       for (int i = 0; i < NumPIDs; i++)
       {
         if (pid == PIDs[i].PID)
@@ -226,7 +247,7 @@ void loop()
     {
       // Using the TWAI filter/mask, we shouldn't see any invalid OBD2 messages
       Serial.printf("Invalid OBD2 frame\n");
-      PrintOBD2Frame(ReceivedOBD2Frame);
+      PrintOBD2Frame(ReceivedOBD2Frame, true);
     }
   }
 

@@ -10,7 +10,7 @@ A big thank you to the Alfisti community for reverse enginering some of these PI
 
 Some tips:
 
-1) Connect your car to a battery charger while experimenting. It's highly likely that you'll spend several hours in your car while the battery is being drained.
+1) Consider connecting your car to a battery charger while experimenting. It's highly likely that you'll spend several hours in your car while the battery is being drained.
 2) Diagrams of OBD2 pins are normally shown for the female connector in your car. Don't forget that those pins are in swapped/mirrored positions on the male connector.
 3) The OBD2 connector has an "always on" 12V pin. Make sure the wire connecting to that pin on your male connector isn't exposed so that it cannot touch other wires!
 4) I tried multiple pins on the ESP32-C3 to connect to the SN65HVD230, but only D4/D5 worked for me. Coincidentally these are also the SDA/SCL pins.
