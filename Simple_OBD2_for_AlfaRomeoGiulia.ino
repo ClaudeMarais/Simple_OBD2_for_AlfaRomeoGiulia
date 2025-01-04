@@ -105,6 +105,12 @@ void SendOBD2Request(PID* pid)
 // Send a request for OBD2 data
 void SendOBD2Request(CarModule carModule, OBD2Service service, uint16_t pid)
 {
+  SendOBD2Request(uint32_t(carModule), uint32_t(service), pid);
+}
+
+// Send a request for OBD2 data
+void SendOBD2Request(uint32_t carModule, uint32_t service, uint16_t pid)
+{
   const uint8_t   unused = 0xAA;
 
   CanFrame canFrame = { 0 };
