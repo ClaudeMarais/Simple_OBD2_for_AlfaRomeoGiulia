@@ -71,19 +71,22 @@ struct PID
 };
 
 // Define our OBD2 PIDs (Thanks to the Alfisti community for reverse enginering some of these PIDs)
-PID PIDs[] = { { "Engine RPM",      CarModule::ECM, OBD2Service::ManufacturerSpecific, 0x1000, &CalcEngineRPM,     PrintEngineRPM },
+PID PIDs[] = { { "Gear",            CarModule::ECM, OBD2Service::ManufacturerSpecific, 0x192D, &CalcGear,          PrintGear },
+               { "Engine RPM",      CarModule::ECM, OBD2Service::ManufacturerSpecific, 0x1000, &CalcEngineRPM,     PrintEngineRPM },
                { "Engine Oil Temp", CarModule::ECM, OBD2Service::ManufacturerSpecific, 0x1302, &CalcEngineOilTemp, PrintEngineOilTemp} };
 
 // Index into the above PIDs[] declaration
 enum PIDIndex
 {
+  Gear,
   EngineRPM,
   EngineOilTemp,
   NumPIDs
 };
 
-PID* pEngineRPM      = &PIDs[PIDIndex::EngineRPM];
-PID* pEngineOilTemp  = &PIDs[PIDIndex::EngineOilTemp];
+PID* pGear          = &PIDs[PIDIndex::Gear];
+PID* pEngineRPM     = &PIDs[PIDIndex::EngineRPM];
+PID* pEngineOilTemp = &PIDs[PIDIndex::EngineOilTemp];
 
 // Most of the PIDs for this car are two bytes and sometimes we need to work with one byte at a time
 #define FIRST_BYTE(TwoByteNumber)   (TwoByteNumber >> 8)
@@ -91,6 +94,13 @@ PID* pEngineOilTemp  = &PIDs[PIDIndex::EngineOilTemp];
 
 // We'll receive OBD2 data in this CAN frame
 CanFrame ReceivedOBD2Frame;
+
+// Send a request for OBD2 data
+void SendOBD2Request(PID* pid)
+{
+  assert(pid);
+  SendOBD2Request(pid->Module, pid->Service, pid->PID);
+}
 
 // Send a request for OBD2 data
 void SendOBD2Request(CarModule carModule, OBD2Service service, uint16_t pid)
@@ -183,8 +193,9 @@ void loop()
   {
     lastTimeStamp = currentTimeStamp;
 
-    SendOBD2Request(pEngineRPM->Module, pEngineRPM->Service, pEngineRPM->PID);
-    SendOBD2Request(pEngineOilTemp->Module, pEngineOilTemp->Service, pEngineOilTemp->PID);
+    SendOBD2Request(pGear);
+    SendOBD2Request(pEngineRPM);
+    SendOBD2Request(pEngineOilTemp);
   }
 
   // Listen for OBD2 frames that came back after requests were sent to retrieve data

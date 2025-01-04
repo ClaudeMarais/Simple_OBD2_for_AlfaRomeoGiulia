@@ -18,6 +18,45 @@ void PrintEngineRPM()
 }
 
 // --------------------------------------------------------
+// ******** Currently Engaged Gear ************************
+// --------------------------------------------------------
+
+static uint32_t g_Gear = 0;   // 0 = Neutral, -1 = Reverse
+
+uint32_t CalcGear(const uint8_t* pData)
+{
+  const uint8_t neutral = 0;
+  const uint8_t reverse = 0x10;
+
+  uint8_t A = pData[4];
+  g_Gear = A;
+
+  // Return -1 for reverse
+  if (g_Gear == reverse)
+  {
+    g_Gear = uint32_t(-1);
+  }
+
+  return g_Gear;
+}
+
+void PrintGear()
+{
+  char gearStr[32] = "Neutral";
+
+  if (g_Gear == uint32_t(-1))
+  {
+    sprintf(gearStr, "Reverse");
+  }
+  else if (g_Gear > 0)
+  {
+    sprintf(gearStr, "%d", g_Gear);
+  }
+
+  Serial.printf("Current Engaged Gear = %s\n", gearStr);
+}
+
+// --------------------------------------------------------
 // ******** Engine Oil Temperature ************************
 // --------------------------------------------------------
 
