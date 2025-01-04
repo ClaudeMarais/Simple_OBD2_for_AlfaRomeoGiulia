@@ -26,17 +26,17 @@
 // The following information is very helpful to understand how OBD2 uses the CAN bus for communication:
 //    https://www.csselectronics.com/pages/obd2-explained-simple-intro
 //
-// General CAN Frame (CAN frames can be any size)
-//   _________________________________________________________________
-//  |            |       |         |       |        |        |        |
-//  |  CAN ID    |  DLC  |  Mode   |  PID  |  Data  |  Data  | ...    |
-//  |____________|_______|_________|_______|________|________|________|
+// General CAN Frame (CAN frames are always 8 bytes)
+//   ___________________________________________________________________________________
+//  |            |       |         |       |        |        |        |        |        |
+//  |  CAN ID    |  DLC  |  Mode   |  PID  |  Data  |  Data  |  Data  |  Data  |  Data  |
+//  |____________|_______|_________|_______|________|________|_____ __|________|________|
 //
-// OBD2 Frame with 2-byte PIDs (OBD2 frames are always 8 bytes)
-//   __________________________________________________________________________________
-//  |            |       |         |       |       |        |        |        |        |
-//  | Car Module |  DLC  | Service |  PID  |  PID  |  Data  |  Data  |  Data  |  Data  |
-//  |____________|_______|_________|_______|_______|________|________|________|________|
+// OBD2 Frame with 2-byte PIDs (OBD2 frames can be longer than 8 bytes, e.g. VIN numbers are 17 bytes)
+//   ___________________________________________________________________________________
+//  |            |       |         |       |        |        |        |        |        |
+//  | Car Module |  DLC  | Service |  PID  |  PID   |  Data  |  Data  |  Data  |  Data  |
+//  |____________|_______|_________|_______|________|________|________|________|________|
 //  
 
 #include <ESP32-TWAI-CAN.hpp>   // TWAI = Two-Wire Automotive Interface
