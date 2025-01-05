@@ -32,7 +32,7 @@
 //  |  CAN ID    |  DLC  |  Mode   |  PID  |  Data  |  Data  |  Data  |  Data  |  Data  |
 //  |____________|_______|_________|_______|________|________|_____ __|________|________|
 //
-// OBD2 Frame with 2-byte PIDs (OBD2 frames can be longer than 8 bytes, e.g. VIN numbers are 17 bytes)
+// OBD2 Frame with 2-byte PIDs (OBD2 can use multiple 8-byte CAN frames, e.g. VIN numbers are 17 bytes)
 //   ___________________________________________________________________________________
 //  |            |       |         |       |        |        |        |        |        |
 //  | Car Module |  DLC  | Service |  PID  |  PID   |  Data  |  Data  |  Data  |  Data  |
