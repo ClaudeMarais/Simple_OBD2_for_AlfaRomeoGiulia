@@ -37,7 +37,7 @@
 //  |            |       |         |       |        |        |        |        |        |
 //  | Car Module |  DLC  | Service |  PID  |  PID   |  Data  |  Data  |  Data  |  Data  |
 //  |____________|_______|_________|_______|________|________|________|________|________|
-//  
+//
 
 #include <ESP32-TWAI-CAN.hpp>   // TWAI = Two-Wire Automotive Interface
 #include "OBD2Calculations.h"   // Callback functions for PIDs
@@ -116,7 +116,7 @@ void SendOBD2Request(uint32_t carModule, uint32_t service, uint16_t pid)
   CanFrame canFrame = { 0 };
 
   canFrame.identifier = carModule;
-  canFrame.extd = (carModule > 0xFF);       // Standard CAN IDs are in the range 0x7E8-0x7EF
+  canFrame.extd = (carModule > 0xFFF);      // Standard CAN IDs are in the range 0x7E8-0x7EF
   canFrame.data_length_code = 8;            // OBD2 always has 8 bytes in a CAN frame
   canFrame.data[0] = (pid > 0xFF) ? 3 : 2;  // If pid is 1 byte, then payload is 2 (1 byte for DLC and 1 byte for pid), otherwise payload is 3 (1 byte for DLC and 2 bytes for pid)
   canFrame.data[1] = service;
