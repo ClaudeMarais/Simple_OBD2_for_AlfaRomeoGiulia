@@ -47,7 +47,8 @@ enum CarModule
 {
   All = 0x18DB33F1,   // Used to send a message to all car modules
   ECM = 0x18DA10F1,   // Engine Control Module
-  TCM = 0x18DA18F1    // Transmision Control Module
+  TCM = 0x18DA18F1,   // Transmision Control Module
+  BCM = 0x18da40f1    // Body Control Module
 };
 
 // CAN Modes for OBD2 Services
@@ -66,14 +67,19 @@ struct PID
   CarModule   Module;
   OBD2Service Service;
   uint16_t    PID;
-  uint32_t (*CalculateValue)(const uint8_t* pData);
+  int32_t (*CalculateValue)(const uint8_t* pData);
   void (*PrintInformation)(void);
 };
 
 // Define our OBD2 PIDs (Thanks to the Alfisti community for reverse enginering some of these PIDs)
-PID PIDs[] = { { "Gear",            CarModule::ECM, OBD2Service::ManufacturerSpecific, 0x192D, &CalcGear,          PrintGear },
-               { "Engine RPM",      CarModule::ECM, OBD2Service::ManufacturerSpecific, 0x1000, &CalcEngineRPM,     PrintEngineRPM },
-               { "Engine Oil Temp", CarModule::ECM, OBD2Service::ManufacturerSpecific, 0x1302, &CalcEngineOilTemp, PrintEngineOilTemp} };
+PID PIDs[] = { { "Gear",                  CarModule::ECM, OBD2Service::ManufacturerSpecific, 0x192D, &CalcGear,                 PrintGear },
+               { "Engine RPM",            CarModule::ECM, OBD2Service::ManufacturerSpecific, 0x1000, &CalcEngineRPM,            PrintEngineRPM },
+               { "Engine Oil Temp",       CarModule::ECM, OBD2Service::ManufacturerSpecific, 0x1302, &CalcEngineOilTemp,        PrintEngineOilTemp },
+               { "Battery IBS",           CarModule::ECM, OBD2Service::ManufacturerSpecific, 0x19BD, &CalcBatteryIBS,           PrintBatteryIBS },
+               { "Battery",               CarModule::ECM, OBD2Service::ManufacturerSpecific, 0x1004, &CalcBattery,              PrintBattery },
+               { "Atmospheric Pressure",  CarModule::ECM, OBD2Service::ManufacturerSpecific, 0x1956, &CalcAtmosphericPressure,  PrintAtmosphericPressure },
+               { "Boost Pressure",        CarModule::ECM, OBD2Service::ManufacturerSpecific, 0x195a, &CalcBoostPressure,        PrintBoostPressure },
+               { "External Temp",         CarModule::BCM, OBD2Service::ManufacturerSpecific, 0x1005, &CalcExternalTemp,         PrintExternalTemp } };
 
 // Index into the above PIDs[] declaration
 enum PIDIndex
@@ -81,12 +87,22 @@ enum PIDIndex
   Gear,
   EngineRPM,
   EngineOilTemp,
+  BatteryIBS,
+  Battery,
+  AtmosphericPressure,
+  BoostPressure,
+  ExternalTemp,
   NumPIDs
 };
 
-PID* pGear          = &PIDs[PIDIndex::Gear];
-PID* pEngineRPM     = &PIDs[PIDIndex::EngineRPM];
-PID* pEngineOilTemp = &PIDs[PIDIndex::EngineOilTemp];
+PID* pGear                = &PIDs[PIDIndex::Gear];
+PID* pEngineRPM           = &PIDs[PIDIndex::EngineRPM];
+PID* pEngineOilTemp       = &PIDs[PIDIndex::EngineOilTemp];
+PID* pBatteryIBS          = &PIDs[PIDIndex::BatteryIBS];
+PID* pBattery             = &PIDs[PIDIndex::Battery];
+PID* pAtmosphericPressure = &PIDs[PIDIndex::AtmosphericPressure];
+PID* pBoostPressure       = &PIDs[PIDIndex::BoostPressure];
+PID* pExternalTemp        = &PIDs[PIDIndex::ExternalTemp];
 
 // Most of the PIDs for this car are two bytes and sometimes we need to work with one byte at a time
 #define FIRST_BYTE(TwoByteNumber)   (TwoByteNumber >> 8)
@@ -111,7 +127,7 @@ void SendOBD2Request(CarModule carModule, OBD2Service service, uint16_t pid)
 // Send a request for OBD2 data
 void SendOBD2Request(uint32_t carModule, uint32_t service, uint16_t pid)
 {
-  const uint8_t   unused = 0xAA;
+  const uint8_t unused = 0xAA;
 
   CanFrame canFrame = { 0 };
 
@@ -132,7 +148,7 @@ void SendOBD2Request(uint32_t carModule, uint32_t service, uint16_t pid)
   // Print frame data when debugging
   //PrintOBD2Frame(canFrame, false);
 
-  delay(50);  // Add a short delay between sending frames
+  delay(20);  // Add a short delay between sending frames
 }
 
 // Find the PID in the data of an OBD2 frame. OBD2 uses a 2-byte PID for Extended CAN frames, but 1 byte for Standard CAN frames
@@ -186,7 +202,7 @@ void setup()
   
   Serial.printf("\n\n********* Simple OBD2 for Alfa Romeo Giulia using ESP32-C3 *********\n\n");
 
-  // Random frames with non-valid OBD2 data can be received on the CAN bus. We're not interested in those, therefore we want to filter them out.
+  // CAN frames with non-valid OBD2 data can be received on the CAN bus. We're not interested in those, therefore we want to filter them out.
   // Valid extended CAN IDs are in the range [0x18DAF100 .. 0x18DAF1FF], so we setup a filter to only receive CAN IDs in the range [0x18000000 .. 0x18FFFFFF]
   twai_filter_config_t canFilter;
   canFilter.acceptance_code = 0x18000000U << 3;
@@ -196,7 +212,7 @@ void setup()
   // Initialize TWAI (two-wire automotive interface) for CAN messaging
   // NOTE: After some failed attempts with the ESP32-C3, it seems that pins TX/RX and D0/D1 doesn't send/receive data to/from
   // SN65HVD230 correctly, but D4/D5 does. (which coinsidentally is also SDA/SCL)
-  while (!ESP32Can.begin(TWAI_SPEED_500KBPS, D4, D5, 8, 8, &canFilter))
+  while (!ESP32Can.begin(TWAI_SPEED_500KBPS, D4, D5, 16, 16, &canFilter))
   {
     Serial.println("CAN bus failed!");
     delay(1000);
@@ -220,18 +236,24 @@ void loop()
     SendOBD2Request(pGear);
     SendOBD2Request(pEngineRPM);
     SendOBD2Request(pEngineOilTemp);
+    SendOBD2Request(pBatteryIBS);
+    SendOBD2Request(pBattery);
+    SendOBD2Request(pAtmosphericPressure);
+    SendOBD2Request(pBoostPressure);
+    SendOBD2Request(pExternalTemp);
   }
 
   // Listen for OBD2 frames that came back after requests were sent to retrieve data
   while (ESP32Can.readFrame(ReceivedOBD2Frame, timeIntervalForData))
   {
     auto canID = ReceivedOBD2Frame.identifier;
-    auto pid = GetPID(ReceivedOBD2Frame);
 
     if (IsValidCarModule(canID))
     {
       // Print frame data when debugging
       //PrintOBD2Frame(ReceivedOBD2Frame, true);
+
+      auto pid = GetPID(ReceivedOBD2Frame);
 
       for (int i = 0; i < NumPIDs; i++)
       {
@@ -250,5 +272,11 @@ void loop()
       PrintOBD2Frame(ReceivedOBD2Frame, true);
     }
   }
+
+  // Let's do something interesting with the PID values. We'll calculate the turbo boost pressure using atmospheric pressure and absolute boost pressure
+  float turboBoostPsi = _max(0.0f, float(g_BoostPressure - g_AtmosphericPressure)) * 0.0145038f;
+  Serial.printf("\nTurbo Boost Pressure = %.1f psi at %d RPM\n", turboBoostPsi, g_EngineRPM);
+  
+  Serial.println();
 
 }
