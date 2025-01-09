@@ -48,7 +48,7 @@ enum CarModule
   All = 0x18DB33F1,   // Used to send a message to all car modules
   ECM = 0x18DA10F1,   // Engine Control Module
   TCM = 0x18DA18F1,   // Transmision Control Module
-  BCM = 0x18da40f1    // Body Control Module
+  BCM = 0x18DA40F1    // Body Control Module
 };
 
 // CAN Modes for OBD2 Services
@@ -79,7 +79,7 @@ PID PIDs[] = { { "Gear",                  CarModule::ECM, OBD2Service::Manufactu
                { "Battery",               CarModule::ECM, OBD2Service::ManufacturerSpecific, 0x1004, &CalcBattery,              PrintBattery },
                { "Atmospheric Pressure",  CarModule::ECM, OBD2Service::ManufacturerSpecific, 0x1956, &CalcAtmosphericPressure,  PrintAtmosphericPressure },
                { "Boost Pressure",        CarModule::ECM, OBD2Service::ManufacturerSpecific, 0x195a, &CalcBoostPressure,        PrintBoostPressure },
-               { "External Temp",         CarModule::BCM, OBD2Service::ManufacturerSpecific, 0x1005, &CalcExternalTemp,         PrintExternalTemp } };
+               { "External Temp",         CarModule::BCM, OBD2Service::ManufacturerSpecific, 0x013C, &CalcExternalTemp,         PrintExternalTemp } };
 
 // Index into the above PIDs[] declaration
 enum PIDIndex
