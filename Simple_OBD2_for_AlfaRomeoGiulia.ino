@@ -192,7 +192,7 @@ void PrintOBD2Frame(CanFrame& frame, const bool receivedFrame)
   // Print extracted info
   Serial.printf("   Car Module = %#04x    Service = %#04x    PID = %#04x    Data Length = %d", frame.identifier, service, pid, frame.data_length_code);
 
-  Serial.println();      
+  Serial.println();
 }
 
 void setup()
